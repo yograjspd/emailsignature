@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Email Signature Generator</title>
+
+<style>
+body { font-family: Arial; margin:20px; }
+.container { display: flex; gap: 30px; }
+.form-box { width: 320px; }
+
+.preview-box {
+  border:none;
+  padding:0;
+  display:inline-block;
+  background:#fff;
+}
+
+label { font-size:13px; font-weight:bold; }
+input { width:100%; margin-bottom:10px; padding:6px; }
+
+button {
+  padding:10px;
+  width:100%;
+  background:#1f7a3a;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+</head>
+
+<body>
+
+<h2>Email Signature Generator</h2>
+
+<div class="container">
+
+<div class="form-box">
+
+<label>Name</label>
+<input type="text" id="name" onkeyup="updateSig()">
+
+<label>Designation</label>
+<input type="text" id="designation" onkeyup="updateSig()">
+
+<label>Mobile</label>
+<input type="text" id="mobile" onkeyup="updateSig()">
+
+<label>Office Ext</label>
+<input type="text" id="office" onkeyup="updateSig()">
+
+<label>Cisco No.</label>
+<input type="text" id="cisco" onkeyup="updateSig()">
+
+<label>Email</label>
+<input type="text" id="email" onkeyup="updateSig()">
+
+<label>Website</label>
+<input type="text" id="website" value="www.bmchrc.org" onkeyup="updateSig()">
+
+<button onclick="downloadImage()">Download Signature (JPG)</button>
+
+</div>
+
+<div class="preview-box" id="signature"></div>
+
+</div>
+
+<script>
+function updateSig() {
+
+let name = document.getElementById("name").value;
+let designation = document.getElementById("designation").value;
+let mobile = document.getElementById("mobile").value;
+let office = document.getElementById("office").value;
+let cisco = document.getElementById("cisco").value;
+let email = document.getElementById("email").value;
+let website = document.getElementById("website").value;
+
+document.getElementById("signature").innerHTML = `
+<table style="font-family: Arial; width:700px; background:#ffffff; border-collapse:collapse;">
+<tr>
+<td style="width:120px; vertical-align:top;">
+<img src="BMCHRC_LOGO.png" style="width:100px;">
+</td>
+
+<td style="vertical-align:top;">
+<p style="margin:0; font-size:18px; font-weight:bold;">${name || ""}</p>
+<p style="margin:0;">${designation || ""}</p>
+
+<p style="margin:3px 0;">
+Bhagwan Mahaveer Cancer Hospital & Research Centre, Jaipur<br>
+(Managed By K. G. Kothari Memorial Trust)
+</p>
+
+<p style="margin:3px 0;">
+M: ${mobile || ""} | O: ${office || ""} C: ${cisco || ""}<br>
+E: ${email || ""} | W: ${website || ""}
+</p>
+</td>
+</tr>
+
+    <td colspan="2" style="text-align:left; padding:10px 0;">
+      <div style="background:#ffffff; color:#1f7a3a; padding:8px; font-weight:bold;">
+        🌿 Save a tree. Please don't print this email unless necessary.
+      </div>
+    </td>
+  </tr>
+</table>`;
+}
+
+function downloadImage() {
+  const el = document.getElementById("signature");
+
+  let name = document.getElementById("name").value || "signature";
+  name = name.trim().replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+
+  html2canvas(el, { backgroundColor: "#ffffff", scale: 2 }).then(canvas => {
+
+    const ctx = canvas.getContext("2d");
+    const { width, height } = canvas;
+    const imgData = ctx.getImageData(0, 0, width, height).data;
+
+    const isWhite = (r,g,b,a) => a === 0 || (r > 245 && g > 245 && b > 245);
+
+    let top = 0, bottom = height - 1, left = 0, right = width - 1;
+
+    outerTop:
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let i = (y * width + x) * 4;
+        if (!isWhite(imgData[i], imgData[i+1], imgData[i+2], imgData[i+3])) {
+          top = y; break outerTop;
+        }
+      }
+    }
+
+    outerBottom:
+    for (let y = height - 1; y >= 0; y--) {
+      for (let x = 0; x < width; x++) {
+        let i = (y * width + x) * 4;
+        if (!isWhite(imgData[i], imgData[i+1], imgData[i+2], imgData[i+3])) {
+          bottom = y; break outerBottom;
+        }
+      }
+    }
+
+    outerLeft:
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        let i = (y * width + x) * 4;
+        if (!isWhite(imgData[i], imgData[i+1], imgData[i+2], imgData[i+3])) {
+          left = x; break outerLeft;
+        }
+      }
+    }
+
+    outerRight:
+    for (let x = width - 1; x >= 0; x--) {
+      for (let y = 0; y < height; y++) {
+        let i = (y * width + x) * 4;
+        if (!isWhite(imgData[i], imgData[i+1], imgData[i+2], imgData[i+3])) {
+          right = x; break outerRight;
+        }
+      }
+    }
+
+    const cropW = right - left + 1;
+    const cropH = bottom - top + 1;
+
+    const cropped = document.createElement("canvas");
+    cropped.width = cropW;
+    cropped.height = cropH;
+
+    const cctx = cropped.getContext("2d");
+    cctx.drawImage(canvas, left, top, cropW, cropH, 0, 0, cropW, cropH);
+
+    const link = document.createElement("a");
+    link.download = name + "_signature.jpg";
+    link.href = cropped.toDataURL("image/jpeg", 1.0);
+    link.click();
+
+  });
+}
+
+updateSig();
+</script>
+
+</body>
+</html>
